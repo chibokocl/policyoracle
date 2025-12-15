@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolicyOracle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              terminal: {
+                black: '#0a0a0a',
+                dark: '#111111',
+                border: '#333333',
+                accent: '#ff9900', // Bloomberg-ish orange
+                text: '#e5e5e5',
+                green: '#00ff41',
+                red: '#ff3b30'
+              },
+              swiss: {
+                red: '#FF4E4E',
+                black: '#111111',
+                gray: '#F5F5F5'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0a0a0a;
+        color: #e5e5e5;
+      }
+      /* Custom Scrollbar for Terminal Feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #111;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 2px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+      
+      /* Risk Glow Animation */
+      @keyframes risk-pulse {
+        0%, 100% {
+          box-shadow: 0 0 4px rgba(220, 38, 38, 0.4);
+          background-color: rgba(220, 38, 38, 0.2);
+          border-color: rgba(220, 38, 38, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 12px rgba(220, 38, 38, 0.8);
+          background-color: rgba(220, 38, 38, 0.4);
+          border-color: rgba(220, 38, 38, 1);
+        }
+      }
+      .animate-risk-glow {
+        animation: risk-pulse 2s infinite ease-in-out;
+      }
+      
+      /* Print specific overrides */
+      @media print {
+        body {
+          background-color: white;
+          color: black;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.32.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "html2canvas": "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.esm.js",
+    "jspdf": "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
