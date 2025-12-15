@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Terminal, Radio, History, Clock, ChevronRight, Trash2, Database, X, FileText, ArrowLeft, LayoutGrid } from 'lucide-react';
-import { PolicyAnalysis } from '../types';
+import { Terminal, Radio, History, Clock, ChevronRight, Trash2, Database, X, FileText, ArrowLeft, LayoutGrid, RefreshCw, MapPin } from 'lucide-react';
+import { PolicyAnalysis, TickerItem } from '../types';
+import { getLiveTickerData } from '../services/marketService';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -119,9 +120,53 @@ export const Layout: React.FC<LayoutProps> = ({
   onBack
 }) => {
   const [registryOpen, setRegistryOpen] = useState(false);
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>([
+      { symbol: "SYSTEM", price: "INITIALIZING", change: "...", trend: "FLAT" }
+  ]);
+  const [tickerLoading, setTickerLoading] = useState(true);
+  const [locationFound, setLocationFound] = useState(false);
 
-  // Close registry when clicking outside handled by Modal backdrop
-  
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchTicker = async () => {
+        let coords: { lat: number, lng: number } | undefined;
+        
+        // Attempt to get location for local context
+        try {
+            const pos: GeolocationPosition = await new Promise((resolve, reject) => {
+                // Short timeout to fallback to global quickly if permission prompt ignored
+                navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+            });
+            coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            if (mounted) setLocationFound(true);
+        } catch (e) {
+            console.log("Geolocation skipped or denied, using global feed.");
+        }
+
+        if (!mounted) return;
+
+        try {
+            const data = await getLiveTickerData(coords);
+            if (mounted) {
+                setTickerItems(data);
+                setTickerLoading(false);
+            }
+        } catch (e) {
+            console.error("Ticker init failed");
+        }
+    };
+    
+    fetchTicker();
+    
+    // Refresh ticker every 2 minutes
+    const interval = setInterval(() => fetchTicker(), 120000);
+    return () => {
+        mounted = false;
+        clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-terminal-black text-terminal-text font-sans selection:bg-terminal-accent selection:text-black flex flex-col">
       {/* Terminal Header */}
@@ -178,14 +223,25 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
         
         {/* Ticker Tape Aesthetic */}
-        <div className="bg-terminal-black border-b border-terminal-border overflow-hidden whitespace-nowrap py-1">
+        <div className="bg-terminal-black border-b border-terminal-border overflow-hidden whitespace-nowrap py-1 relative flex items-center">
+          {locationFound && (
+             <div className="absolute left-0 top-0 bottom-0 bg-terminal-black z-10 px-2 flex items-center border-r border-gray-800 text-terminal-accent">
+                 <MapPin size={10} className="mr-1" />
+                 <span className="text-[10px] font-mono font-bold">LOCAL</span>
+             </div>
+          )}
           <div className="inline-block animate-marquee text-xs font-mono text-gray-500">
-            BTC/USD 64,231.20 <span className="text-green-500">▲ 1.2%</span> &nbsp;|&nbsp; 
-            GOLD 2,341.50 <span className="text-red-500">▼ 0.4%</span> &nbsp;|&nbsp; 
-            CRUDE 78.40 <span className="text-green-500">▲ 0.1%</span> &nbsp;|&nbsp; 
-            S&P500 5,200.10 <span className="text-terminal-accent">▬ 0.0%</span> &nbsp;|&nbsp; 
-            POLYMARKET: US ELECTION VOL $120M &nbsp;|&nbsp;
-            GEMINI-3-PRO: ACTIVE
+             {/* Duplicate map for seamless loop effect */}
+             {[...tickerItems, ...tickerItems].map((item, idx) => (
+                 <span key={idx} className="mx-4">
+                     <span className="text-white font-bold">{item.symbol}</span> {item.price} 
+                     <span className={`ml-2 ${item.trend === 'UP' ? 'text-terminal-green' : item.trend === 'DOWN' ? 'text-red-500' : 'text-gray-400'}`}>
+                         {item.trend === 'UP' ? '▲' : item.trend === 'DOWN' ? '▼' : '▬'} {item.change}
+                     </span>
+                     <span className="text-gray-700 mx-4">|</span>
+                 </span>
+             ))}
+             <span className="mx-4 text-terminal-accent font-bold">LIVE FEED ACTIVE</span>
           </div>
         </div>
       </header>

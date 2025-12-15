@@ -89,6 +89,13 @@ export interface MarketData {
   isSimulation?: boolean;
 }
 
+export interface TickerItem {
+  symbol: string;
+  price: string;
+  change: string;
+  trend: 'UP' | 'DOWN' | 'FLAT';
+}
+
 export enum AppState {
   UPLOAD = 'UPLOAD',
   ANALYZING = 'ANALYZING',

@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { MarketData } from '../types';
+import { MarketData, TickerItem } from '../types';
 
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
@@ -97,6 +97,68 @@ export const getPredictionMarkets = async (queries: string[]): Promise<MarketDat
 
   // Fallback to Mock Data if AI fails completely
   return getMockMarkets();
+};
+
+export const getLiveTickerData = async (coords?: { lat: number, lng: number }): Promise<TickerItem[]> => {
+  try {
+    const ai = getAIClient();
+    
+    let contextPrompt = "Focus on Major Global Indices: S&P 500, NASDAQ, BTC/USD, Gold, Crude Oil.";
+    
+    if (coords) {
+        contextPrompt = `
+        USER LOCATION: Latitude ${coords.lat}, Longitude ${coords.lng}.
+        
+        INSTRUCTIONS:
+        1. IDENTIFY the specific country and major financial hub closest to these coordinates.
+        2. FETCH the key local stock market index for this region (e.g., FTSE 100 for UK, Nikkei 225 for Japan, Nifty 50 for India, DAX for Germany).
+        3. FETCH the local currency exchange rate against USD (e.g., GBP/USD, EUR/USD, INR/USD).
+        4. ALSO INCLUDE global benchmarks: BTC/USD, Gold (XAU/USD), Brent Crude Oil.
+        `;
+    }
+
+    const prompt = `
+      Act as a high-frequency financial data feed.
+      ${contextPrompt}
+      
+      TASK: Search for the LATEST REAL-TIME market prices and 24h percentage changes.
+      
+      RETURN JSON ARRAY ONLY (No markdown, no explanation):
+      [
+        { "symbol": "LOCAL_INDEX_NAME", "price": "12,345.10", "change": "+1.2%", "trend": "UP" },
+        { "symbol": "BTC/USD", "price": "64,230.10", "change": "-0.5%", "trend": "DOWN" }
+      ]
+      
+      Rules:
+      - Trend must be 'UP', 'DOWN', or 'FLAT'.
+      - Price should be formatted with commas (e.g. 1,234.56).
+      - Change should include +/- sign and %.
+      - If data is unavailable, omit it.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: { parts: [{ text: prompt }] },
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
+    });
+
+    const text = response.text;
+    if (text) {
+        const clean = cleanJsonString(text);
+        const data = JSON.parse(clean);
+        if (Array.isArray(data)) return data;
+    }
+  } catch (e) {
+      console.warn("Ticker Fetch Failed", e);
+  }
+
+  // Fallback defaults
+  return [
+      { symbol: "BTC/USD", price: "Loading...", change: "0.0%", trend: "FLAT" },
+      { symbol: "MARKET", price: "CONNECTING...", change: "...", trend: "FLAT" }
+  ];
 };
 
 const getMockMarkets = (): MarketData[] => [
